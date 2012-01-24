@@ -1,31 +1,59 @@
 #!/usr/bin/env python
 import pygame
+from math import floor
+from pylibftdi import Device # I2C over USB
+import time
 #import servo
+dev = Device(mode='b')
+dev.baudrate = 9600
 
 # allow multiple joysticks
 joy = []
- 
+
+def fix(bits):
+    if bits & 0b00100000:
+        return 63-bits
+    else:
+        return bits
+
 # handle joystick event
 def handleJoyEvent(e):
     if e.type == pygame.JOYAXISMOTION:
         axis = "unknown"
         if (e.dict['axis'] == 0):
             axis = "X"
+            bits = 0b10000000 # Throw away; don't change anything
  
         if (e.dict['axis'] == 1):
             axis = "Y"
+            bits = 0b10000000
  
         if (e.dict['axis'] == 2):
             axis = "Throttle"
+            bits = 0b01000000
  
         if (e.dict['axis'] == 3):
             axis = "Z"
+            bits = 0b11000000
  
         if (axis != "unknown"):
-            #str = "Axis: %s; Value: %f" % (axis, e.dict['value'])
-            str = "%s %f" % (axis, e.dict['value'])
-            # uncomment to debug
-            output(str, e.dict['joy'])
+            scale  = 63  # From 0 to __
+            scale /= 2
+            bottom5 = int( scale*(e.dict['value']+1) )
+            print "From joystick: %s %d" % (axis, bottom5)
+            print "bottom5 ==", bottom5
+            print "bits+bottom5 == ", bits+bottom5
+            print 
+
+            dev.write(chr(bits+bottom5))
+            print "%s %f" % (axis, e.dict['value']+1)
+            from_arduino = dev.read(1)
+            print "from_arduino:", from_arduino
+            time.sleep(.030)
+            # for num in range(256):
+            #     print "Sending " + str(num)
+            #     dev.write(chr(num))
+            #     time.sleep(.005)
  
             # Arduino joystick-servo hack
             if (axis == "X"):
@@ -68,11 +96,6 @@ def handleJoyEvent(e):
     # else:
     #     pass
 
-# print the joystick position
-def output(line, stick):
-    ##print "Joystick: %d; %s" % (stick, line)
-    print line
- 
 # wait for joystick input
 def joystickControl():
     while True:
