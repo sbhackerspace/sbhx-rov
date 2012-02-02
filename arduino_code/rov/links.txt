@@ -1,0 +1,3 @@
+http://arduino.cc/en/Reference/Servo
+http://principialabs.com/arduino-python-4-axis-servo-control/
+http://principialabs.com/joystick-control-of-a-servo/
